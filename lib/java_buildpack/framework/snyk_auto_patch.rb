@@ -49,29 +49,38 @@ module JavaBuildpack
         https.use_ssl = true
         req['Content-Type'] = 'application/json'
         req['Authorization'] = 'token ' + @application.environment["SNYK_TOKEN"]
-        data = File.read(pom_path)
+        if (pom_path) then
+          data = File.read(pom_path)
+        else
+          data = ""
+        end
         test_request = {
-          'encoding' => 'plain', 
+          'encoding' => 'plain',
           'files' => {
               'target' => {
                 "contents": ""
-              },              
+              },
           }
         }
-        test_request['files']['target']['contents'] = data
 
         additional = []
         jars = Dir.glob("#{@droplet.root}/WEB-INF/**/*.jar")
         jars.each do |jar|
             jar_pom_path = `unzip -Z1 #{jar} | grep "pom.xml"`
-            if (jar_pom_path.length) > 0 then        
+            if (jar_pom_path.length) > 0 then
                 poms = jar_pom_path.split("\n")
                 poms.each do |pom|
                     pom_content = `unzip -p #{jar} #{pom}`
-                    additional.push({"contents" => pom_content})
+                    # if no main pom files were found, using pom from first jar file as main pom for API call.
+                    if data.empty? then
+                      data = pom_content
+                    else
+                      additional.push({"contents" => pom_content})
+                    end
                 end
             end
         end
+        test_request['files']['target']['contents'] = data
         test_request['files']['additional'] = additional;
 
         req.body = test_request.to_json
@@ -90,19 +99,19 @@ module JavaBuildpack
           vulns.sort! do |vuln_a, vuln_b|
               vulna_map = severityMap[vuln_a['severity']]
               vulnb_map = severityMap[vuln_b['severity']]
-              if (vulna_map > vulnb_map) 
+              if (vulna_map > vulnb_map)
                 1
-              elsif (vulna_map < vulnb_map) 
+              elsif (vulna_map < vulnb_map)
                 -1
               else
                 0
               end
           end
           puts "\nFounded #{vulns.length} vulnerabilities on #{res['dependencyCount']} dependencies\n"
-          vulns.each do |vuln| 
+          vulns.each do |vuln|
               severity = vuln['severity']
               if (severity == 'high') then
-                  color = "\e[31m"            
+                  color = "\e[31m"
               elsif (severity == 'medium') then
                   color = "\e[1;33m"
               else
@@ -112,8 +121,8 @@ module JavaBuildpack
               puts "  Description: #{severity} severity vulnerabiltity found in #{vuln['package']}"
               puts "  Info: #{vuln['url']}"
               puts "  Introduce through: #{vuln['from'][0]}\n"
-          end 
-          
+          end
+
           raise "Terminating droplet compilation as Snyk detected vulnerabilties..."
         end
       end
