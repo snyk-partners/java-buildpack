@@ -67,7 +67,7 @@ frameworks:
   - "JavaBuildpack::Framework::ProtectAppSecurityProvider"
   - "JavaBuildpack::Framework::RiverbedAppinternalsAgent"
   - "JavaBuildpack::Framework::SpringAutoReconfiguration"
-  - "JavaBuildpack::Framework::SnykAutoPatch"
+  - "JavaBuildpack::Framework::Snyk"
   - "JavaBuildpack::Framework::SpringInsight"
   - "JavaBuildpack::Framework::SkyWalkingAgent"
   - "JavaBuildpack::Framework::YourKitProfiler"
