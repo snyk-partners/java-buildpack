@@ -45,18 +45,7 @@ describe JavaBuildpack::Framework::Snyk do
   context do
 
     before do
-      allow(services).to receive(:one_service?)
-        .with(/snyk/, 'apiToken', 'apiUrl', 'orgName').and_return(true)
-
-      allow(services).to receive(:find_service)
-        .with(/snyk/, 'apiToken', 'apiUrl', 'orgName')
-        .and_return(
-          'credentials' => {
-            'apiToken' => '01234567-8901-2345-6789-012345678901',
-            'apiUrl' => 'https://my.internal.snyk/api',
-            'orgName' => 'my-org'
-          }
-        )
+      allow(services).to receive(:one_service?).with(/snyk/, 'apiToken').and_return(true)
     end
 
     it 'detects with snyk service' do

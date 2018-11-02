@@ -15,4 +15,6 @@
 
 # Configuration for the Snyk framework
 ---
-version: 1.+
+fail_build: true
+org_name:
+severity_threshold: low

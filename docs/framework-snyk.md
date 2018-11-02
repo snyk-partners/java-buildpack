@@ -36,11 +36,9 @@ The framework can be configured with additional (optional) values through enviro
 
 | Name | Description
 | ---- | -----------
-| `SNYK_DONT_BREAK_BUILD` | If set to `true` will tell Snyk to continue with the application deployment even though Snyk found vulnerabilties.
-| `SNYK_SEVERITY_THRESHOLD` | Tells Snyk the severity threshold of vulnerabilities found above which to fail the deployment.
-
-### Additional Resources
-The framework can also be configured by overlaying a set of resources on the default distribution.  To do this, add files to the `resources/new_relic_agent` directory in the buildpack fork.  For example, to override the default `new_relic.yml` add your custom file to `resources/new_relic_agent/newrelic.yml`.
+| `fail_build` | Specifies whether to fail the build on discovery of vulnerabilities above the `severity_threshold`.  Defaults to `true`.
+| `org_name` | Specifies an override of the organization name in the service credential payload.  Defaults to using the service credential payload.
+| `severity_threshold` | Specifies the threshold at which Snyk will report vulnerabilities and optionally fail the build.  Legal values are `low`, `medium`, and `high`.  Defaults to `low`. 
 
 [Snyk Service]: https://snyk.io
 [Configuration and Extension]: ../README.md#configuration-and-extension
