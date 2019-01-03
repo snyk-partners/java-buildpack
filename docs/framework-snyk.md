@@ -44,6 +44,7 @@ The framework can be configured with additional (optional) values by modifying t
 | `org_name` | Same as `orgName` in credentials payload. If defined both in config and in credentials, config will take precedence.
 | `dont_break_build` | If set to `true` will tell Snyk to continue with the application deployment even though Snyk found vulnerabilties.
 | `severity_threshold` | Tells Snyk the severity threshold of vulnerabilities found above which to fail the deployment.
+| `monitor_build` | If set to `true` will tell Snyk to take a snapshot of your current dependencies, so you can be notified about newly disclosed vulnerabilities in them, or when a previously unavailable patch or upgrade path becomes available.
 
 [Snyk Service]: https://snyk.io
 [Configuration and Extension]: ../README.md#configuration-and-extension

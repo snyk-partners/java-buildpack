@@ -21,3 +21,4 @@ api_url:
 org_name:
 dont_break_build:
 severity_threshold:
+monitor_build:

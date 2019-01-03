@@ -38,9 +38,10 @@ module JavaBuildpack
       # (see JavaBuildpack::Component::BaseComponent#compile)
       # This is to change the FS
       def compile
-        puts "#{'----->'.red.bold} Running #{'snyk test'.blue.bold} "
+        puts "#{'----->'.red.bold} Running #{'snyk'.blue.bold} "
         puts "       severity_threshold: #{severity_threshold}".italic
         puts "       dont_break_build: #{dont_break_build?}".italic
+        puts "       monitor_build: #{monitor_build?}".italic
 
         manifests = poms
         if manifests.empty?
@@ -48,22 +49,25 @@ module JavaBuildpack
           return
         end
 
-        response = request manifests
-        payload = parse_response response
+        response = snyk_test manifests
+        payload = parse_test_response response
         issues  = issues payload
 
         print_header
         print_issues issues
         print_summary issues, payload
 
-        return if issues.empty?
-
-        if dont_break_build?
+        if !issues.empty?
+          if !dont_break_build?
+            raise 'Snyk found vulnerabilities'    
+          end
           puts '       dont_break_build was defined, continuing despite vulnerabilities found'.yellow
-          return
         end
 
-        raise 'Snyk found vulnerabilities'
+        if monitor_build?
+          snyk_monitor manifests
+        end
+
       end
 
       # (see JavaBuildpack::Component::BaseComponent#release)
@@ -91,12 +95,16 @@ module JavaBuildpack
       SEVERITY_THRESHOLD_CONFIG = 'severity_threshold'
       SEVERITY_THRESHOLD_ENV = 'SNYK_SEVERITY_THRESHOLD'
 
+      MONITOR_BUILD_CONFIG = 'monitor_build'
+      MONITOR_BUILD_ENV = 'SNYK_MONITOR_BUILD'
+
       private_constant  :FILTER, \
                         :API_TOKEN_CONFIG, :API_TOKEN_CRED, :API_TOKEN_ENV, \
                         :API_URL_CONFIG, :API_URL_CRED, :API_URL_ENV, \
                         :ORG_NAME_CONFIG, :ORG_NAME_CRED, :ORG_NAME_ENV, \
                         :DONT_BREAK_BUILD_CONFIG, :DONT_BREAK_BUILD_ENV, \
-                        :SEVERITY_THRESHOLD_CONFIG, :SEVERITY_THRESHOLD_ENV
+                        :SEVERITY_THRESHOLD_CONFIG, :SEVERITY_THRESHOLD_ENV, \
+                        :MONITOR_BUILD_CONFIG, :MONITOR_BUILD_ENV
 
       def api_token
         @configuration[API_TOKEN_CONFIG] || credentials[API_TOKEN_CRED] || @application.environment[API_TOKEN_ENV]
@@ -129,6 +137,10 @@ module JavaBuildpack
 
       def dont_break_build?
         (@configuration[DONT_BREAK_BUILD_CONFIG] || @application.environment[DONT_BREAK_BUILD_ENV] || 'false').downcase == 'true'
+      end
+
+      def monitor_build?
+        (@configuration[MONITOR_BUILD_CONFIG] || @application.environment[MONITOR_BUILD_ENV] || 'false').downcase == 'true'
       end
 
       def filesystem_poms
@@ -210,7 +222,9 @@ module JavaBuildpack
         puts ' '
       end
 
-      def request(poms)
+      def snyk_test(poms)
+        puts "       Running Snyk test ...".white.bold
+
         uri       = URI("#{api_url}/v1/test/maven")
         uri.query = URI.encode_www_form(org: org_name) if org_name && !org_name.empty?
 
@@ -227,7 +241,7 @@ module JavaBuildpack
         end
       end
 
-      def parse_response(response)
+      def parse_test_response(response)
         begin
           payload = JSON.parse(response.body || '')
           return payload unless payload['code'] || payload['error']
@@ -240,6 +254,29 @@ module JavaBuildpack
         rescue JSON::ParserError
           raise "Unexpected response from api (HTTP #{response.code} #{response.message})"
         end
+      end
+
+      def snyk_monitor(poms)
+        puts "       Running Snyk monitor ...".white.bold
+
+        b = {
+          ci: false,
+          
+        }
+        uri       = URI("#{api_url}/v1/monitor/maven")
+
+        body                        = { 'encoding' => 'plain', 'files' => { 'target' => { 'contents' => poms[0] } } }
+        body['files']['additional'] = poms[1..-1].map { |pom| { 'contents' => pom } } if poms.length > 1
+
+        request                  = Net::HTTP::Post.new(uri)
+        request['Content-Type']  = 'application/json'
+        request['Authorization'] = "token #{api_token}"
+        request.body             = body.to_json
+
+        Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
+          http.request(request)
+        end
+
       end
 
       def severity_threshold
