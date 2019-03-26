@@ -39,8 +39,6 @@ module JavaBuildpack
       # This is to change the FS
       def compile
         puts "#{'----->'.red.bold} Running #{'snyk test'.blue.bold} "
-        puts "       severity_threshold: #{severity_threshold}".italic
-        puts "       dont_break_build: #{dont_break_build?}".italic
 
         manifests = poms
         if manifests.empty?
